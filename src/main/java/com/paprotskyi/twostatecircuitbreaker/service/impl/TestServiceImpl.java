@@ -1,6 +1,6 @@
-package com.paprotskyi.probabilitycircuitbreaker.service.impl;
+package com.paprotskyi.twostatecircuitbreaker.service.impl;
 
-import com.paprotskyi.probabilitycircuitbreaker.service.TestService;
+import com.paprotskyi.twostatecircuitbreaker.service.TestService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -15,6 +15,8 @@ public class TestServiceImpl implements TestService {
 
   @Override
   public String callExternalService(String parameter1) {
+
+    //todo find how to create my circuit breaker using circuit breaker registry, maybe add custom impl
     return null;
   }
 }

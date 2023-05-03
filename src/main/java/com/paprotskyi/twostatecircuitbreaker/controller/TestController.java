@@ -1,4 +1,4 @@
-package com.paprotskyi.probabilitycircuitbreaker.controller;
+package com.paprotskyi.twostatecircuitbreaker.controller;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

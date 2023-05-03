@@ -1,4 +1,4 @@
-package com.paprotskyi.probabilitycircuitbreaker.engine;
+package com.paprotskyi.twostatecircuitbreaker.engine;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.LongAdder;
  * which is package-private in the library.
  * Please see the io.github.resilience4j.circuitbreaker.internal.CircuitBreakerMetrics class implementation.
  */
-public class ProbabilisticSimpleMetrics implements CircuitBreaker.Metrics {
+public class SimpleMetrics implements CircuitBreaker.Metrics {
 
   private final FixedSizeSlidingWindowMetrics metrics;
   private final float failureRateThreshold;
@@ -26,8 +26,8 @@ public class ProbabilisticSimpleMetrics implements CircuitBreaker.Metrics {
   /*
    * This class implements only the COUNT_BASED sliding window type metrics
    */
-  public ProbabilisticSimpleMetrics(int slidingWindowSize,
-                                    CircuitBreakerConfig circuitBreakerConfig) {
+  public SimpleMetrics(int slidingWindowSize,
+                       CircuitBreakerConfig circuitBreakerConfig) {
     this.metrics = new FixedSizeSlidingWindowMetrics(slidingWindowSize);
     this.minimumNumberOfCalls = Math
         .min(circuitBreakerConfig.getMinimumNumberOfCalls(), slidingWindowSize);
@@ -39,8 +39,8 @@ public class ProbabilisticSimpleMetrics implements CircuitBreaker.Metrics {
     this.numberOfNotPermittedCalls = new LongAdder();
   }
 
-  static ProbabilisticSimpleMetrics forClosed(CircuitBreakerConfig circuitBreakerConfig) {
-    return new ProbabilisticSimpleMetrics(
+  static SimpleMetrics forClosed(CircuitBreakerConfig circuitBreakerConfig) {
+    return new SimpleMetrics(
         circuitBreakerConfig.getSlidingWindowSize(),
         circuitBreakerConfig);
   }
@@ -110,17 +110,20 @@ public class ProbabilisticSimpleMetrics implements CircuitBreaker.Metrics {
     return Result.BELOW_THRESHOLDS;
   }
 
-  private float getSlowCallRate(Snapshot snapshot) {
+  private boolean checkNotExceedsMinimumNumberOfCalls(Snapshot snapshot) {
     int bufferedCalls = snapshot.getTotalNumberOfCalls();
-    if (bufferedCalls == 0 || bufferedCalls < minimumNumberOfCalls) {
+    return bufferedCalls == 0 || bufferedCalls < minimumNumberOfCalls;
+  }
+
+  private float getSlowCallRate(Snapshot snapshot) {
+    if (checkNotExceedsMinimumNumberOfCalls(snapshot)) {
       return -1.0f;
     }
     return snapshot.getSlowCallRate();
   }
 
   private float getFailureRate(Snapshot snapshot) {
-    int bufferedCalls = snapshot.getTotalNumberOfCalls();
-    if (bufferedCalls == 0 || bufferedCalls < minimumNumberOfCalls) {
+    if (checkNotExceedsMinimumNumberOfCalls(snapshot)) {
       return -1.0f;
     }
     return snapshot.getFailureRate();
@@ -132,6 +135,49 @@ public class ProbabilisticSimpleMetrics implements CircuitBreaker.Metrics {
   @Override
   public float getFailureRate() {
     return getFailureRate(metrics.getSnapshot());
+  }
+
+  private float getTargetCallNumberRate(Snapshot snapshot, int targetMetrics) {
+    if (checkNotExceedsMinimumNumberOfCalls(snapshot)) {
+      return 0.0f;
+    }
+    int totalCalls = snapshot.getTotalNumberOfCalls();
+
+    float targetRateDecimal = (float) targetMetrics / totalCalls;
+    if (targetRateDecimal == Float.POSITIVE_INFINITY || Float.isNaN(targetRateDecimal)) {
+      return 0.0f;
+    }
+    return targetRateDecimal;
+  }
+
+  /**
+   * NOTE: This method returns 0.0f in case the total number of measured calls
+   * is less than minimumNumberOrCalls. This can be used in the probability formula.
+   * This works not in the same way as an original implementation.
+   */
+  public float getDecimalFailureRate() {
+    Snapshot snapshot = metrics.getSnapshot();
+    return getTargetCallNumberRate(snapshot, snapshot.getNumberOfFailedCalls());
+  }
+
+  /**
+   * NOTE: This method returns 0.0f in case the total number of measured calls
+   * is less than minimumNumberOrCalls. This can be used in the probability formula.
+   * This works not in the same way as an original implementation.
+   */
+  //TODO this can be also considered as two parts in probabilities: successful and failed slow calls
+  public float getDecimalSlowCallRate() {
+    Snapshot snapshot = metrics.getSnapshot();
+    return getTargetCallNumberRate(snapshot, snapshot.getTotalNumberOfSlowCalls());
+  }
+
+
+  public float getDecimalSuccessRate() {
+    Snapshot snapshot = metrics.getSnapshot();
+    if (checkNotExceedsMinimumNumberOfCalls(snapshot)) {
+      return 0.0f;
+    }
+    return getTargetCallNumberRate(snapshot, snapshot.getNumberOfSuccessfulCalls());
   }
 
   /**

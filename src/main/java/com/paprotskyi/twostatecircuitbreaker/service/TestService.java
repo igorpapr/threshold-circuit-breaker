@@ -1,4 +1,4 @@
-package com.paprotskyi.probabilitycircuitbreaker.service;
+package com.paprotskyi.twostatecircuitbreaker.service;
 
 public interface TestService {
 

@@ -1,6 +1,6 @@
-package com.paprotskyi.probabilitycircuitbreaker.engine;
+package com.paprotskyi.twostatecircuitbreaker.engine;
 
-import com.paprotskyi.probabilitycircuitbreaker.exception.IncorrectStateLogicException;
+import com.paprotskyi.twostatecircuitbreaker.exception.IncorrectStateLogicException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -27,9 +26,9 @@ import java.util.function.UnaryOperator;
 
 import static io.github.resilience4j.circuitbreaker.CircuitBreaker.State.OPEN;
 
-public class ProbabilisticCircuitBreaker implements CircuitBreaker {
+public class ThresholdCircuitBreaker implements CircuitBreaker {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ProbabilisticCircuitBreaker.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ThresholdCircuitBreaker.class);
 
   private final String name;
   private final AtomicReference<SimpleState> stateReference;
@@ -39,9 +38,9 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
   private final Map<String, String> tags;
   private final TimeUnit timestampUnit;
 
-  public ProbabilisticCircuitBreaker(String name,
-                                     Clock clock,
-                                     CircuitBreakerConfig circuitBreakerConfig) {
+  public ThresholdCircuitBreaker(String name,
+                                 Clock clock,
+                                 CircuitBreakerConfig circuitBreakerConfig) {
     this.name = name;
     this.circuitBreakerConfig = Objects
         .requireNonNull(circuitBreakerConfig, "Config must not be null");
@@ -52,7 +51,7 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
     this.tags = Collections.emptyMap();
   }
 
-  public ProbabilisticCircuitBreaker(String name) {
+  public ThresholdCircuitBreaker(String name) {
     this(name, Clock.systemUTC(), CircuitBreakerConfig.ofDefaults());
   }
 
@@ -87,14 +86,14 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
 
   @Override
   public void onSuccess(long duration, TimeUnit durationUnit) {
-    LOG.debug("ProbabilisticCircuitBreaker '{}' succeeded:", name);
+    LOG.debug("ThresholdCircuitBreaker '{}' succeeded:", name);
     stateReference.get().onSuccess(duration, durationUnit);
   }
 
   @Override
   public void onResult(long duration, TimeUnit durationUnit, @Nullable Object result) {
     if (result != null && circuitBreakerConfig.getRecordResultPredicate().test(result)) {
-      LOG.debug("ProbabilisticCircuitBreaker '{}' recorded a result type '{}' as failure:", name, result.getClass());
+      LOG.debug("ThresholdCircuitBreaker '{}' recorded a result type '{}' as failure:", name, result.getClass());
       ResultRecordedAsFailureException failure = new ResultRecordedAsFailureException(name, result);
       stateReference.get().onError(duration, durationUnit, failure);
     } else {
@@ -229,7 +228,7 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
   private interface SimpleState {
 
     CircuitBreaker.State getState();
-    ProbabilisticSimpleMetrics getMetrics();
+    SimpleMetrics getMetrics();
 
     boolean tryAcquirePermission();
 
@@ -246,15 +245,15 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
 
   private class ClosedState implements SimpleState {
 
-    private final ProbabilisticSimpleMetrics circuitBreakerMetrics;
+    private final SimpleMetrics circuitBreakerMetrics;
     private final AtomicBoolean isClosed;
 
     public ClosedState() {
-      this.circuitBreakerMetrics = ProbabilisticSimpleMetrics.forClosed(getCircuitBreakerConfig());
+      this.circuitBreakerMetrics = SimpleMetrics.forClosed(getCircuitBreakerConfig());
       this.isClosed = new AtomicBoolean(true);
     }
 
-    public ClosedState(ProbabilisticSimpleMetrics metrics) {
+    public ClosedState(SimpleMetrics metrics) {
       this.circuitBreakerMetrics = metrics;
       this.isClosed = new AtomicBoolean(true);
     }
@@ -265,7 +264,7 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
     }
 
     @Override
-    public ProbabilisticSimpleMetrics getMetrics() {
+    public SimpleMetrics getMetrics() {
       return circuitBreakerMetrics;
     }
 
@@ -307,8 +306,8 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
       checkIfThresholdsExceeded(circuitBreakerMetrics.onSuccess(duration, durationUnit));
     }
 
-    private void checkIfThresholdsExceeded(ProbabilisticSimpleMetrics.Result result) {
-      if (ProbabilisticSimpleMetrics.Result.hasExceededThresholds(result) && isClosed.compareAndSet(true, false)) {
+    private void checkIfThresholdsExceeded(SimpleMetrics.Result result) {
+      if (SimpleMetrics.Result.hasExceededThresholds(result) && isClosed.compareAndSet(true, false)) {
         transitionToOpenState();
       }
     }
@@ -316,13 +315,15 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
 
   private class OpenState implements SimpleState {
 
-    private final ProbabilisticSimpleMetrics circuitBreakerMetrics;
+    private final SimpleMetrics circuitBreakerMetrics;
 
     private final AtomicBoolean isOpen;
 
     private final long openStateTransitionTimestamp;
 
-    public OpenState(ProbabilisticSimpleMetrics circuitBreakerMetrics) {
+    private static final float DEFAULT_TRANSITION_RATING_THRESHOLD = 0.5f;
+
+    public OpenState(SimpleMetrics circuitBreakerMetrics) {
       this.circuitBreakerMetrics = circuitBreakerMetrics;
       this.isOpen = new AtomicBoolean(true);
       this.openStateTransitionTimestamp = getCurrentTimestamp();
@@ -334,7 +335,7 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
     }
 
     @Override
-    public ProbabilisticSimpleMetrics getMetrics() {
+    public SimpleMetrics getMetrics() {
       return circuitBreakerMetrics;
     }
 
@@ -342,14 +343,15 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
     public boolean tryAcquirePermission() {
       // get the probability of transitioning from OPEN to CLOSED state from markov chains or probability engine
       if (isOpen.get()) {
-        double toClosedProbability = calculateProbabilityOfClosing();
-        if (ThreadLocalRandom.current().nextDouble() < toClosedProbability) {
+        float toClosedTransitionRating = calculateTransitionRatingValue();
+        if (toClosedTransitionRating > DEFAULT_TRANSITION_RATING_THRESHOLD) {
           toClosedState();
           return true;
         }
+        circuitBreakerMetrics.onCallNotPermitted();
+        return false;
       }
-      circuitBreakerMetrics.onCallNotPermitted();
-      return false;
+      return true;
     }
 
     private synchronized void toClosedState() {
@@ -358,18 +360,18 @@ public class ProbabilisticCircuitBreaker implements CircuitBreaker {
       }
     }
 
-    private double calculateProbabilityOfClosing() {
+    private float calculateTransitionRatingValue() {
       // Calculate the probability of transitioning to the Closed state
       long currentOpenStateDuration = getCurrentTimestamp() - openStateTransitionTimestamp;
-      return ProbabilityCalculator
-          .calculateToClosedStateProbability(circuitBreakerMetrics, currentOpenStateDuration);
+      return StateTransitionCalculator
+          .calculateTransitionValue(circuitBreakerMetrics, currentOpenStateDuration);
     }
 
     @Override
     public void acquirePermission() {
       if (!tryAcquirePermission()) {
         throw CallNotPermittedException
-            .createCallNotPermittedException(ProbabilisticCircuitBreaker.this);
+            .createCallNotPermittedException(ThresholdCircuitBreaker.this);
       }
     }
 

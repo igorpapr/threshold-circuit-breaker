@@ -1,4 +1,4 @@
-package com.paprotskyi.probabilitycircuitbreaker.exception;
+package com.paprotskyi.twostatecircuitbreaker.exception;
 
 public class IncorrectStateLogicException extends RuntimeException {
 
