@@ -7,8 +7,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.ResultRecordedAsFailureException;
 import io.github.resilience4j.core.functions.Either;
 import io.github.resilience4j.core.lang.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -26,9 +25,8 @@ import java.util.function.UnaryOperator;
 
 import static io.github.resilience4j.circuitbreaker.CircuitBreaker.State.OPEN;
 
+@Slf4j
 public class ThresholdCircuitBreaker implements CircuitBreaker {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ThresholdCircuitBreaker.class);
 
   private final String name;
   private final AtomicReference<SimpleState> stateReference;
@@ -58,7 +56,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
   @Override
   public boolean tryAcquirePermission() {
     boolean callPermitted = stateReference.get().tryAcquirePermission();
-    LOG.info("CircuitBreaker call is {}permitted, state: {}", callPermitted ? "" : "not ", getState());
+    log.info("CircuitBreaker call is {}permitted, state: {}", callPermitted ? "" : "not ", getState());
     return callPermitted;
   }
 
@@ -86,14 +84,14 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
   @Override
   public void onSuccess(long duration, TimeUnit durationUnit) {
-    LOG.debug("ThresholdCircuitBreaker '{}' succeeded:", name);
+    log.debug("ThresholdCircuitBreaker '{}' succeeded:", name);
     stateReference.get().onSuccess(duration, durationUnit);
   }
 
   @Override
   public void onResult(long duration, TimeUnit durationUnit, @Nullable Object result) {
     if (result != null && circuitBreakerConfig.getRecordResultPredicate().test(result)) {
-      LOG.debug("ThresholdCircuitBreaker '{}' recorded a result type '{}' as failure:", name, result.getClass());
+      log.debug("ThresholdCircuitBreaker '{}' recorded a result type '{}' as failure:", name, result.getClass());
       ResultRecordedAsFailureException failure = new ResultRecordedAsFailureException(name, result);
       stateReference.get().onError(duration, durationUnit, failure);
     } else {
@@ -106,15 +104,15 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
   private void handleThrowable(long duration, TimeUnit durationUnit, Throwable throwable) {
     if (circuitBreakerConfig.getIgnoreExceptionPredicate().test(throwable)) {
-      LOG.debug("CircuitBreaker '{}' ignored an exception:", name, throwable);
+      log.debug("CircuitBreaker '{}' ignored an exception:", name, throwable);
       releasePermission();
       return;
     }
     if (circuitBreakerConfig.getRecordExceptionPredicate().test(throwable)) {
-      LOG.debug("CircuitBreaker '{}' recorded an exception as failure:", name, throwable);
+      log.debug("CircuitBreaker '{}' recorded an exception as failure:", name, throwable);
       stateReference.get().onError(duration, durationUnit, throwable);
     } else {
-      LOG.debug("CircuitBreaker '{}' recorded an exception as success:", name, throwable);
+      log.debug("CircuitBreaker '{}' recorded an exception as success:", name, throwable);
       stateReference.get().onSuccess(duration, durationUnit);
     }
     handlePossibleTransition(Either.right(throwable));
@@ -128,7 +126,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
   @Override
   public void reset() {
-    LOG.error("CircuitBreaker {} State reset to CLOSED state", getName());
+    log.error("CircuitBreaker {} State reset to CLOSED state", getName());
     stateReference.getAndUpdate(currentState -> new ClosedState());
   }
 
@@ -178,7 +176,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
   private void stateTransition(State newState,
                                UnaryOperator<SimpleState> newStateGenerator) {
-    LOG.debug("CircuitBreaker {} transition to {} state", getName(), newState.name());
+    log.debug("CircuitBreaker {} transition to {} state", getName(), newState.name());
     stateReference.getAndUpdate(currentState -> {
       StateTransition.transitionBetween(getName(), currentState.getState(), newState);
       return newStateGenerator.apply(currentState);
@@ -321,7 +319,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
     private final long openStateTransitionTimestamp;
 
-    private static final float DEFAULT_TRANSITION_RATING_THRESHOLD = 0.5f;
+    private static final float DEFAULT_TRANSITION_RATING_THRESHOLD = 0.7f;
 
     public OpenState(SimpleMetrics circuitBreakerMetrics) {
       this.circuitBreakerMetrics = circuitBreakerMetrics;
@@ -344,10 +342,12 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
       // get the probability of transitioning from OPEN to CLOSED state from markov chains or probability engine
       if (isOpen.get()) {
         float toClosedTransitionRating = calculateTransitionRatingValue();
-        if (toClosedTransitionRating > DEFAULT_TRANSITION_RATING_THRESHOLD) {
+        log.info("Calculated transition rating {}", toClosedTransitionRating);
+        if (toClosedTransitionRating >= DEFAULT_TRANSITION_RATING_THRESHOLD) {
           toClosedState();
           return true;
         }
+        log.debug("Declining the request, because the state is still OPEN");
         circuitBreakerMetrics.onCallNotPermitted();
         return false;
       }
@@ -363,6 +363,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
     private float calculateTransitionRatingValue() {
       // Calculate the probability of transitioning to the Closed state
       long currentOpenStateDuration = getCurrentTimestamp() - openStateTransitionTimestamp;
+      log.debug("Current open state duration in nanos: {}", currentOpenStateDuration);
       return StateTransitionCalculator
           .calculateTransitionValue(circuitBreakerMetrics, currentOpenStateDuration);
     }
