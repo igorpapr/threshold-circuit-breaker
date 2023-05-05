@@ -2,6 +2,8 @@ package com.paprotskyi.twostatecircuitbreaker.service;
 
 public interface TestService {
 
-  String callExternalService(String parameter1);
+  String callExternalServiceWithDefaultBreaker(String parameter1);
+
+  String callExternalServiceWithThresholdBreaker(String parameter1);
 
 }

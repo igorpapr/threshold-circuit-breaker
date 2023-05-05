@@ -18,6 +18,6 @@ public class TestController {
 
   @GetMapping("/test")
   public String sampleEndpoint() {
-    return testService.callExternalService("This is a test parameter1");
+    return testService.callExternalServiceWithThresholdBreaker("This is a test parameter1");
   }
 }
