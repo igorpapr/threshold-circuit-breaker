@@ -6,11 +6,17 @@ resilience4j.circuitbreaker:
       minimumNumberOfCalls: 1 #this enables the thresholds check starting from the first request
       permittedNumberOfCallsInHalfOpenState: 3
       automaticTransitionFromOpenToHalfOpenEnabled: true
-      waitDurationInOpenState: 5s
+      waitDurationInOpenState: 3s
+      slowCallDurationThreshold: 5000 #5 secs
       failureRateThreshold: 50
       eventConsumerBufferSize: 10
+      record-exceptions:
+        - com.paprotskyi.twostatecircuitbreaker.exception.FailResponseException
+        - java.lang.InterruptedException
 
 logging:
   level:
-    root: debug
+    root: info
+
+number-of-test-calls: 100
 

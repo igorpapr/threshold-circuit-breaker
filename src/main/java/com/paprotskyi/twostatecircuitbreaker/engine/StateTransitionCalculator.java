@@ -8,23 +8,21 @@ public class StateTransitionCalculator {
 
   private static final long DEFAULT_OPEN_STATE_DURATION_THRESHOLD = 10_000_000_000L;
 
-  private static final int DEFAULT_NUMBER_OF_BUCKETS_FOR_DURATION = 3;
-
   private static final float SLOW_CALL_RATE_COEFFICIENT = 0.25f;
   private static final float FAILURE_RATE_COEFFICIENT = 0.15f;
   private static final float SUCCESS_CALL_RATE_COEFFICIENT = 0.1f;
   private static final float TIME_IN_OPEN_STATE_COEFFICIENT = 0.5f;
-  //todo maybe remove
   private static final float AVERAGE_DURATION_OF_CALLS_COEFFICIENT = 0.1f;
+  private static final int DEFAULT_NUMBER_OF_BUCKETS_FOR_DURATION = 3;
+
 
   //todo probably add check for configuration that all the coefficients sum up as 1
   public static float calculateTransitionValue(@NonNull SimpleMetrics metrics,
-                                                long currentOpenStateDurationInNanos) {
+                                               long currentOpenStateDurationInNanos) {
     //always close the circuit breaker when the time in open state is longer than the given threshold
     if (currentOpenStateDurationInNanos > DEFAULT_OPEN_STATE_DURATION_THRESHOLD) {
       return Float.POSITIVE_INFINITY;
     }
-
 
     //todo: should we use this one, or the original one, which works with minimumNumberOfCalls variable
     float decimalFailureRating = (1 - metrics.getDecimalFailureRate()) * FAILURE_RATE_COEFFICIENT;
@@ -36,8 +34,6 @@ public class StateTransitionCalculator {
         currentOpenStateDurationInNanos / DEFAULT_OPEN_STATE_DURATION_THRESHOLD * TIME_IN_OPEN_STATE_COEFFICIENT;
     //TODO try getting this information later
     //avg duration of calls in last N (maybe just one) buckets / avg duration in all buckets - bigger than one or lower
-
-    //P(ClosedState) = ?? w1*T/T_MAX ?? + w2(1-FR) + w3(1-SCR) + w4*(1+SR) + w5*(1-(AD_last_buckets/AD_all_buckets)) + w6S + w7F
 
     return decimalFailureRating + decimalSlowCallRating + decimalSuccessCallRating + timeInOpenStateRating;
   }

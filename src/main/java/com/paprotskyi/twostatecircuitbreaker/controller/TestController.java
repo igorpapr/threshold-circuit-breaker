@@ -16,8 +16,13 @@ public class TestController {
 
   TestService testService;
 
-  @GetMapping("/test")
-  public String sampleEndpoint() {
-    return testService.callExternalServiceWithThresholdBreaker("This is a test parameter1");
+  @GetMapping("/test-default")
+  public boolean testSuccessRate() throws InterruptedException {
+    return testService.callExternalServiceWithDefaultBreaker();
+  }
+
+  @GetMapping("/test-threshold")
+  public boolean testSuccessRateThreshold() throws InterruptedException {
+    return testService.callExternalServiceWithThresholdBreaker();
   }
 }

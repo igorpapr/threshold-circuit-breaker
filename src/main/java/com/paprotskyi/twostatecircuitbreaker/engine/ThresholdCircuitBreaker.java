@@ -84,14 +84,14 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
   @Override
   public void onSuccess(long duration, TimeUnit durationUnit) {
-    log.debug("ThresholdCircuitBreaker '{}' succeeded:", name);
+    log.info("ThresholdCircuitBreaker '{}' succeeded:", name);
     stateReference.get().onSuccess(duration, durationUnit);
   }
 
   @Override
   public void onResult(long duration, TimeUnit durationUnit, @Nullable Object result) {
     if (result != null && circuitBreakerConfig.getRecordResultPredicate().test(result)) {
-      log.debug("ThresholdCircuitBreaker '{}' recorded a result type '{}' as failure:", name, result.getClass());
+      log.info("ThresholdCircuitBreaker '{}' recorded a result type '{}' as failure:", name, result.getClass());
       ResultRecordedAsFailureException failure = new ResultRecordedAsFailureException(name, result);
       stateReference.get().onError(duration, durationUnit, failure);
     } else {
@@ -104,15 +104,15 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
   private void handleThrowable(long duration, TimeUnit durationUnit, Throwable throwable) {
     if (circuitBreakerConfig.getIgnoreExceptionPredicate().test(throwable)) {
-      log.debug("CircuitBreaker '{}' ignored an exception:", name, throwable);
+      log.info("CircuitBreaker '{}' ignored an exception:", name, throwable);
       releasePermission();
       return;
     }
     if (circuitBreakerConfig.getRecordExceptionPredicate().test(throwable)) {
-      log.debug("CircuitBreaker '{}' recorded an exception as failure:", name, throwable);
+      log.info("CircuitBreaker '{}' recorded an exception as failure:", name, throwable);
       stateReference.get().onError(duration, durationUnit, throwable);
     } else {
-      log.debug("CircuitBreaker '{}' recorded an exception as success:", name, throwable);
+      log.info("CircuitBreaker '{}' recorded an exception as success:", name, throwable);
       stateReference.get().onSuccess(duration, durationUnit);
     }
     handlePossibleTransition(Either.right(throwable));
@@ -176,7 +176,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
   private void stateTransition(State newState,
                                UnaryOperator<SimpleState> newStateGenerator) {
-    log.debug("CircuitBreaker {} transition to {} state", getName(), newState.name());
+    log.info("CircuitBreaker {} transition to {} state", getName(), newState.name());
     stateReference.getAndUpdate(currentState -> {
       StateTransition.transitionBetween(getName(), currentState.getState(), newState);
       return newStateGenerator.apply(currentState);
@@ -226,6 +226,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
   private interface SimpleState {
 
     CircuitBreaker.State getState();
+
     SimpleMetrics getMetrics();
 
     boolean tryAcquirePermission();

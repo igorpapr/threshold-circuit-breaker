@@ -1,9 +1,8 @@
 package com.paprotskyi.twostatecircuitbreaker.service;
 
 public interface TestService {
+  boolean callExternalServiceWithDefaultBreaker() throws InterruptedException;
 
-  String callExternalServiceWithDefaultBreaker(String parameter1);
-
-  String callExternalServiceWithThresholdBreaker(String parameter1);
+  boolean callExternalServiceWithThresholdBreaker() throws InterruptedException;
 
 }

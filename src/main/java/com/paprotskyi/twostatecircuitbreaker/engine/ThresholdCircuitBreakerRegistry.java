@@ -20,50 +20,6 @@ import static java.util.Collections.emptyMap;
 public class ThresholdCircuitBreakerRegistry extends
     AbstractRegistry<CircuitBreaker, CircuitBreakerConfig> implements CircuitBreakerRegistry {
 
-//  public ThresholdCircuitBreakerRegistry() {
-//    this(emptyMap());
-//  }
-
-//  public ThresholdCircuitBreakerRegistry(Map<String, CircuitBreakerConfig> configs) {
-//    this(configs, emptyMap());
-//  }
-//
-//  public ThresholdCircuitBreakerRegistry(Map<String, CircuitBreakerConfig> configs,
-//                                         Map<String, String> tags) {
-//    this(configs.getOrDefault(DEFAULT_CONFIG, CircuitBreakerConfig.ofDefaults()), tags);
-//    this.configurations.putAll(configs);
-//  }
-
-//  public ThresholdCircuitBreakerRegistry(Map<String, CircuitBreakerConfig> configs,
-//                                        RegistryEventConsumer<CircuitBreaker> registryEventConsumer) {
-//    this(configs.getOrDefault(DEFAULT_CONFIG, CircuitBreakerConfig.ofDefaults()),
-//        registryEventConsumer);
-//    this.configurations.putAll(configs);
-//  }
-
-//  public ThresholdCircuitBreakerRegistry(Map<String, CircuitBreakerConfig> configs,
-//                                        RegistryEventConsumer<CircuitBreaker> registryEventConsumer, Map<String, String> tags) {
-//    this(configs.getOrDefault(DEFAULT_CONFIG, CircuitBreakerConfig.ofDefaults()),
-//        registryEventConsumer, tags);
-//    this.configurations.putAll(configs);
-//  }
-
-//  public ThresholdCircuitBreakerRegistry(Map<String, CircuitBreakerConfig> configs,
-//                                        List<RegistryEventConsumer<CircuitBreaker>> registryEventConsumers,
-//                                        Map<String, String> tags, RegistryStore<CircuitBreaker> registryStore) {
-//    super(configs.getOrDefault(DEFAULT_CONFIG, CircuitBreakerConfig.ofDefaults()),
-//        registryEventConsumers, Optional.ofNullable(tags).orElse(emptyMap()),
-//        Optional.ofNullable(registryStore).orElse(new InMemoryRegistryStore<>()));
-//    this.configurations.putAll(configs);
-//  }
-
-//  public ThresholdCircuitBreakerRegistry(Map<String, CircuitBreakerConfig> configs,
-//                                        List<RegistryEventConsumer<CircuitBreaker>> registryEventConsumers) {
-//    this(configs.getOrDefault(DEFAULT_CONFIG, CircuitBreakerConfig.ofDefaults()),
-//        registryEventConsumers);
-//    this.configurations.putAll(configs);
-//  }
-
   /**
    * The constructor with custom default config.
    *
@@ -72,34 +28,6 @@ public class ThresholdCircuitBreakerRegistry extends
   public ThresholdCircuitBreakerRegistry(CircuitBreakerConfig defaultConfig) {
     super(defaultConfig);
   }
-
-  //TODO remove these commented if event consumers will not be needed
-//  /**
-//   * The constructor with custom default config.
-//   *
-//   * @param defaultConfig The default config.
-//   * @param tags          The tags to add to the CircuitBreaker
-//   */
-//  public ThresholdCircuitBreakerRegistry(CircuitBreakerConfig defaultConfig,
-//                                        Map<String, String> tags) {
-//    super(defaultConfig, tags);
-//  }
-//
-//  public ThresholdCircuitBreakerRegistry(CircuitBreakerConfig defaultConfig,
-//                                        RegistryEventConsumer<CircuitBreaker> registryEventConsumer) {
-//    super(defaultConfig, registryEventConsumer);
-//  }
-//
-//  public ThresholdCircuitBreakerRegistry(CircuitBreakerConfig defaultConfig,
-//                                        RegistryEventConsumer<CircuitBreaker> registryEventConsumer,
-//                                        Map<String, String> tags) {
-//    super(defaultConfig, registryEventConsumer, tags);
-//  }
-//
-//  public ThresholdCircuitBreakerRegistry(CircuitBreakerConfig defaultConfig,
-//                                        List<RegistryEventConsumer<CircuitBreaker>> registryEventConsumers) {
-//    super(defaultConfig, registryEventConsumers);
-//  }
 
   /**
    * {@inheritDoc}
@@ -161,7 +89,8 @@ public class ThresholdCircuitBreakerRegistry extends
 
   @Override
   public CircuitBreaker circuitBreaker(String name,
-                                       Supplier<CircuitBreakerConfig> circuitBreakerConfigSupplier, Map<String, String> tags) {
+                                       Supplier<CircuitBreakerConfig> circuitBreakerConfigSupplier,
+                                       Map<String, String> tags) {
     throw new RuntimeException("This case is not considered in this study");
   }
 }
