@@ -3,11 +3,11 @@ resilience4j.circuitbreaker:
     default:
       registerHealthIndicator: true
       slidingWindowSize: 10
-      minimumNumberOfCalls: 1 #this enables the thresholds check starting from the first request
+      minimumNumberOfCalls: 10 #this enables the thresholds check starting from the first request
       permittedNumberOfCallsInHalfOpenState: 3
       automaticTransitionFromOpenToHalfOpenEnabled: true
       waitDurationInOpenState: 3s
-      slowCallDurationThreshold: 5000 #5 secs
+      slowCallDurationThreshold: 1500 #5000 #5 secs
       failureRateThreshold: 50
       eventConsumerBufferSize: 10
       record-exceptions:
@@ -18,5 +18,6 @@ logging:
   level:
     root: info
 
-number-of-test-calls: 100
+number-of-test-calls: 50
+test-mode: success_rate_traditional
 

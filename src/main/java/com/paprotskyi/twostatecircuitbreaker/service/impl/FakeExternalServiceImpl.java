@@ -25,10 +25,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class FakeExternalServiceImpl implements FakeExternalService {
 
-  private static final long RANDOM_SEED = 125L;
-  private static final long CLOCK_RANDOM_SEED = 130L;
+  private static final long RANDOM_SEED = 12L;
+  private static final long CLOCK_RANDOM_SEED = 13L;
   private static final int MIN_RESPONSE_TIME = 50; //50 ms
-  private static final int MAX_RESPONSE_TIME = 10000; //10 seconds
+  private static final int MAX_RESPONSE_TIME = 3000;//10000; //10 seconds
   private final Random timeRandom;
   private final Random successFailRandom;
   private final StateTimer stateTimer;
@@ -53,16 +53,17 @@ public class FakeExternalServiceImpl implements FakeExternalService {
     boolean isUp = stateTimer.getState();
     if (isUp) {
       int randomTime = MIN_RESPONSE_TIME + timeRandom.nextInt(MAX_RESPONSE_TIME - MIN_RESPONSE_TIME);
-      log.info("Locking for time: {} before response", randomTime);
+      log.info("Locking for time: {} before successful response", randomTime);
       Thread.sleep(randomTime);
       //TODO probably consider removing and test only on the successful responses,
       // not considering the business exceptions.
-      if (successFailRandom.nextBoolean()) {
+//      if (successFailRandom.nextBoolean()) {
         return true;
-      } else {
-        throw new FailResponseException();
-      }
+//      } else {
+//        throw new FailResponseException();
+//      }
     } else {
+      log.info("Waiting for time: {} before fail response", MAX_RESPONSE_TIME);
       Thread.sleep(MAX_RESPONSE_TIME);
       throw new FailResponseException();
     }
@@ -76,7 +77,7 @@ public class FakeExternalServiceImpl implements FakeExternalService {
     private final Random random;
     private final Timer timer = new Timer();
 
-    private static final float STATE_CHANGE_PROBABILITY = 0.2f;
+    private static final float STATE_CHANGE_PROBABILITY = 0.1f;
     private static final int DELAY_MIN_TIME = 1000; //1 sec
     private static final int DELAY_MAX_TIME = 3000; //3 sec
 

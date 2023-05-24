@@ -13,11 +13,14 @@ public class CircuitBreakerTestRunner implements ApplicationRunner {
 
   private final int numberOfCalls;
   private final TestService testService;
+  private final String testMode;
 
   public CircuitBreakerTestRunner(@Value("${number-of-test-calls}") int numberOfCalls,
+                                  @Value("${test-mode}") String testMode,
                                   TestService testService) {
     this.numberOfCalls = numberOfCalls;
     this.testService = testService;
+    this.testMode = testMode;
   }
 
   @Override
@@ -25,13 +28,21 @@ public class CircuitBreakerTestRunner implements ApplicationRunner {
     int counter = 0;
     for (int i = 0; i < numberOfCalls; i++) {
       log.info("making request: {}", i);
-      if (testService.callExternalServiceWithDefaultBreaker()) {
-      //if (testService.callExternalServiceWithThresholdBreaker()) {
+      if (makeTargetCallGetBooleanResponse()) {
         counter++;
       }
       Thread.sleep(500);
     }
     float result = (float) counter / numberOfCalls;
-    log.error("RESULT RATE: {}", result);
+    log.info("\n\n======================RESULT RATE: {}=======================\n\n", result);
+  }
+
+  private boolean makeTargetCallGetBooleanResponse() throws InterruptedException {
+    return testMode.equals("success-rate-traditional")
+        ? testService.callExternalServiceWithDefaultBreaker()
+        : testService.callExternalServiceWithThresholdBreaker();
   }
 }
+
+//default 0.88
+//mine 0.86 still have to tune
