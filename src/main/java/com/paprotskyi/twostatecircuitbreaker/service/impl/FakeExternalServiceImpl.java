@@ -55,13 +55,7 @@ public class FakeExternalServiceImpl implements FakeExternalService {
       int randomTime = MIN_RESPONSE_TIME + timeRandom.nextInt(MAX_RESPONSE_TIME - MIN_RESPONSE_TIME);
       log.info("Locking for time: {} before successful response", randomTime);
       Thread.sleep(randomTime);
-      //TODO probably consider removing and test only on the successful responses,
-      // not considering the business exceptions.
-//      if (successFailRandom.nextBoolean()) {
         return true;
-//      } else {
-//        throw new FailResponseException();
-//      }
     } else {
       log.info("Waiting for time: {} before fail response", MAX_RESPONSE_TIME);
       Thread.sleep(MAX_RESPONSE_TIME);
@@ -77,9 +71,9 @@ public class FakeExternalServiceImpl implements FakeExternalService {
     private final Random random;
     private final Timer timer = new Timer();
 
-    private static final float STATE_CHANGE_PROBABILITY = 0.1f;
+    private static final float STATE_CHANGE_PROBABILITY = 0.3f;
     private static final int DELAY_MIN_TIME = 1000; //1 sec
-    private static final int DELAY_MAX_TIME = 3000; //3 sec
+    private static final int DELAY_MAX_TIME = 10000; //10 sec
 
     public StateTimer(long clockRandomSeed) {
       this.random = new Random(clockRandomSeed);

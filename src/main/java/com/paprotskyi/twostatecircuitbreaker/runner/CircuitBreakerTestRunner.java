@@ -38,11 +38,8 @@ public class CircuitBreakerTestRunner implements ApplicationRunner {
   }
 
   private boolean makeTargetCallGetBooleanResponse() throws InterruptedException {
-    return testMode.equals("success-rate-traditional")
+    return testMode.equals("success_rate_traditional")
         ? testService.callExternalServiceWithDefaultBreaker()
         : testService.callExternalServiceWithThresholdBreaker();
   }
 }
-
-//default 0.88
-//mine 0.86 still have to tune

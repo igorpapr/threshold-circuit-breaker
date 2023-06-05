@@ -31,6 +31,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
   private final String name;
   private final AtomicReference<SimpleState> stateReference;
   private final CircuitBreakerConfig circuitBreakerConfig;
+  private final StateTransitionCalculator stateTransitionCalculator;
   private final Clock clock;
   private final Function<Clock, Long> currentTimestampFunction;
   private final Map<String, String> tags;
@@ -47,6 +48,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
     this.stateReference = new AtomicReference<>(new ClosedState());
     this.timestampUnit = circuitBreakerConfig.getTimestampUnit();
     this.tags = Collections.emptyMap();
+    this.stateTransitionCalculator = new StateTransitionCalculator();
   }
 
   public ThresholdCircuitBreaker(String name) {
@@ -153,25 +155,25 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
   @Override
   public void transitionToHalfOpenState() {
     throw new IncorrectStateLogicException(
-        "Transition to half-open state must not be initiated in ProbabilisticCircuitBreaker");
+        "Transition to half-open state must not be initiated in ThresholdCircuitBreaker");
   }
 
   @Override
   public void transitionToDisabledState() {
     throw new IncorrectStateLogicException(
-        "Transition to disabled state must not be initiated in ProbabilisticCircuitBreaker");
+        "Transition to disabled state must not be initiated in ThresholdCircuitBreaker");
   }
 
   @Override
   public void transitionToMetricsOnlyState() {
     throw new IncorrectStateLogicException(
-        "Transition to metrics only state must not be initiated in ProbabilisticCircuitBreaker");
+        "Transition to metrics only state must not be initiated in ThresholdCircuitBreaker");
   }
 
   @Override
   public void transitionToForcedOpenState() {
     throw new IncorrectStateLogicException(
-        "Transition to forced open state must not be initiated in ProbabilisticCircuitBreaker");
+        "Transition to forced open state must not be initiated in ThresholdCircuitBreaker");
   }
 
   private void stateTransition(State newState,
@@ -320,7 +322,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
     private final long openStateTransitionTimestamp;
 
-    private static final float DEFAULT_TRANSITION_RATING_THRESHOLD = 0.7f;
+    private static final float DEFAULT_TRANSITION_RATING_THRESHOLD = 0.4f;
 
     public OpenState(SimpleMetrics circuitBreakerMetrics) {
       this.circuitBreakerMetrics = circuitBreakerMetrics;
@@ -340,7 +342,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
 
     @Override
     public boolean tryAcquirePermission() {
-      // get the probability of transitioning from OPEN to CLOSED state from markov chains or probability engine
+      // get the transitioning rating from OPEN to CLOSED state and compare it with the threshold
       if (isOpen.get()) {
         float toClosedTransitionRating = calculateTransitionRatingValue();
         log.info("Calculated transition rating {}", toClosedTransitionRating);
@@ -365,8 +367,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
       // Calculate the probability of transitioning to the Closed state
       long currentOpenStateDuration = getCurrentTimestamp() - openStateTransitionTimestamp;
       log.debug("Current open state duration in nanos: {}", currentOpenStateDuration);
-      return StateTransitionCalculator
-          .calculateTransitionValue(circuitBreakerMetrics, currentOpenStateDuration);
+      return stateTransitionCalculator.calculateTransitionValue(circuitBreakerMetrics, currentOpenStateDuration);
     }
 
     @Override
@@ -380,7 +381,7 @@ public class ThresholdCircuitBreaker implements CircuitBreaker {
     @Override
     public void releasePermission() {
       throw new IncorrectStateLogicException(
-          "Permission release must not be initiated in ProbabilisticCircuitBreaker");
+          "Permission release must not be initiated in ThresholdCircuitBreaker");
     }
 
     @Override

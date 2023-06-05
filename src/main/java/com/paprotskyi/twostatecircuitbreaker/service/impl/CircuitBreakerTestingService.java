@@ -43,11 +43,12 @@ public class CircuitBreakerTestingService implements TestService {
 
   private boolean fallback(Exception e) {
     e.printStackTrace();
-//    com.paprotskyi.twostatecircuitbreaker.engine.ThresholdCircuitBreaker thresholdCircuitBreaker =
-//        (com.paprotskyi.twostatecircuitbreaker.engine.ThresholdCircuitBreaker)
-//            thresholdCircuitBreakerRegistry.getAllCircuitBreakers().iterator().next();
-//    Metrics metrics = thresholdCircuitBreaker.getMetrics();
-    log.info("Recovered fallback");//, metrics);
+    // This is how you can access metrics in this flow:
+    //    com.paprotskyi.twostatecircuitbreaker.engine.ThresholdCircuitBreaker thresholdCircuitBreaker =
+    //        (com.paprotskyi.twostatecircuitbreaker.engine.ThresholdCircuitBreaker)
+    //            thresholdCircuitBreakerRegistry.getAllCircuitBreakers().iterator().next();
+    //    Metrics metrics = thresholdCircuitBreaker.getMetrics();
+    log.info("Recovered fallback");
     return false;
   }
 
