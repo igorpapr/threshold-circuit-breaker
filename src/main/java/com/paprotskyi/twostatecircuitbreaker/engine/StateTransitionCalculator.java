@@ -8,6 +8,9 @@ public class StateTransitionCalculator {
 
   private static final long DEFAULT_OPEN_STATE_DURATION_THRESHOLD = 10_000_000_000L;
 
+  //For the study process, these coefficients are stated as constant values,
+  // because each test requires full application reload
+  //In order to use them in production purposes, please, extract them to the application properties
   private static final float SLOW_CALL_RATE_COEFFICIENT = 0.15f;
   private static final float FAILURE_RATE_COEFFICIENT = 0.4f;
   private static final float SUCCESS_CALL_RATE_COEFFICIENT = 0.35f;
